@@ -1,0 +1,28 @@
+This is a test PIG script from my learnings from my Udemy course of Frank Kane
+
+Data file: 
+Download from https://grouplens.org/datasets/movielens/100k/
+
+Q. Find popular movies (> 4 star ratings)
+
+PIG Template:
+
+ratings = LOAD '/user/maria_dev/MovieData/u.data' AS (userID:int, movieID:int, rating:int, ratingTime:int);
+
+metadata = LOAD '/user/maria_dev/MovieData/u.item' USING PigStorage('|')
+	AS (movieID:int, movieTitle:chararray, releaseDate:chararray, videoRealese:chararray, imdblink:chararray);
+   
+movieNameList = FOREACH metadata GENERATE movieID, movieTitle,
+	ToUnixTime(ToDate(releaseDate, 'dd-MMM-yyyy')) AS releaseTime;
+   
+groupRatingsByMovie = GROUP ratings BY movieID;
+
+AverageRatings = FOREACH groupRatingsByMovie GENERATE group as movieID, AVG(ratings.rating) as avgRating;
+
+fiveStarMovies = FILTER AverageRatings BY avgRating > 4.0;
+
+fiveStarsWithData = JOIN fiveStarMovies BY movieID, movieNameList BY movieID;
+
+oldestFiveStarMovies = ORDER fiveStarsWithData BY movieNameList::releaseTime;
+
+DUMP oldestFiveStarMovies;
